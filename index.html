@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hangar 7 — Jet Engine Teardown</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈</text></svg>" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene"></canvas>
+
+    <!-- Top HUD -->
+    <header id="topbar">
+      <div class="brand">
+        <span class="logo">✈</span>
+        <div>
+          <strong>HANGAR 7</strong>
+          <small>Jet Engine Teardown · Desktop 3D</small>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><label>TIME</label><span id="hud-time">00:00</span></div>
+        <div class="stat"><label>SCORE</label><span id="hud-score">0</span></div>
+        <div class="stat"><label>CONDITION</label><span id="hud-condition">100%</span></div>
+        <div class="stat"><label>PROGRESS</label><span id="hud-progress">0 / 25</span></div>
+      </div>
+      <div class="top-actions">
+        <button id="btn-hint" title="Hint (H)">💡 Hint</button>
+        <button id="btn-sound" title="Mute (M)">🔊</button>
+        <button id="btn-reset" title="Restart (R)">↺</button>
+        <button id="btn-help" title="Help (F1)">?</button>
+      </div>
+    </header>
+
+    <!-- Left: teardown manual -->
+    <aside id="manual">
+      <h2>TEARDOWN MANUAL <span id="diff-badge">APPRENTICE</span></h2>
+      <ol id="steps"></ol>
+      <div class="manual-foot">
+        <p>Follow the order. Pick the right tool, click all <b>bolts</b>, then click the loose part to extract it.</p>
+        <div class="legend">
+          <span><i class="dot wrench"></i> Wrench</span>
+          <span><i class="dot driver"></i> Screwdriver</span>
+          <span><i class="dot puller"></i> Puller</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right: workbench -->
+    <aside id="bench">
+      <h2>WORKBENCH</h2>
+      <div id="bench-items"><p class="empty">Removed parts land here.</p></div>
+      <div id="combo" class="hidden">🔥 STREAK ×<span id="combo-n">0</span></div>
+    </aside>
+
+    <!-- Bottom toolbelt -->
+    <nav id="toolbelt">
+      <button class="tool active" data-tool="wrench" title="Wrench (1)">
+        <span class="ticon">🔧</span><span class="tname">Wrench</span><kbd>1</kbd>
+      </button>
+      <button class="tool" data-tool="screwdriver" title="Screwdriver (2)">
+        <span class="ticon">🪛</span><span class="tname">Screwdriver</span><kbd>2</kbd>
+      </button>
+      <button class="tool" data-tool="puller" title="Bearing puller (3)">
+        <span class="ticon">🦾</span><span class="tname">Puller</span><kbd>3</kbd>
+      </button>
+      <div id="tooltip">Hover the engine — click glowing bolts.</div>
+    </nav>
+
+    <div id="toast-wrap"></div>
+    <div id="crosshair" class="hidden">＋</div>
+
+    <!-- Start overlay -->
+    <div id="overlay-start" class="overlay">
+      <div class="card">
+        <div class="card-tag">DESKTOP 3D · MOUSE + KEYBOARD</div>
+        <h1>HANGAR 7<br /><span>Jet Engine Teardown</span></h1>
+        <p class="sub">You are the crew chief. Strip a turbofan down to its core shaft — in the right order, with the right tool. Wrong tools damage the airframe.</p>
+        <div class="diff-row">
+          <button class="diff active" data-diff="apprentice">🧑‍🔧 Apprentice<small>guided highlights</small></button>
+          <button class="diff" data-diff="mechanic">🔩 Mechanic<small>manual only</small></button>
+          <button class="diff" data-diff="master">🏆 Master<small>no help, 2× score</small></button>
+        </div>
+        <div class="controls-grid">
+          <div><b>Drag</b> orbit · <b>Wheel</b> zoom · <b>Right-drag</b> pan</div>
+          <div><b>Click bolt</b> loosen · <b>Click loose part</b> extract</div>
+          <div><b>1 / 2 / 3</b> tools · <b>H</b> hint · <b>R</b> restart · <b>F</b> focus</div>
+        </div>
+        <button id="btn-start">▶ &nbsp;START TEARDOWN</button>
+        <p class="tiny">Best: <span id="best-line">—</span> · Desktop build: <code>npm run electron</code> (see README)</p>
+      </div>
+    </div>
+
+    <!-- Win overlay -->
+    <div id="overlay-win" class="overlay hidden">
+      <div class="card">
+        <div class="card-tag gold">★ ENGINE STRIPPED ★</div>
+        <h1>Teardown<br /><span>Complete</span></h1>
+        <div id="win-stats"></div>
+        <div class="row">
+          <button id="btn-again">↺ TEARDOWN AGAIN</button>
+          <button id="btn-inspect" class="ghost">INSPECT CORE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help overlay -->
+    <div id="overlay-help" class="overlay hidden">
+      <div class="card small">
+        <h1 style="font-size:28px">How to play</h1>
+        <ol class="help-list">
+          <li>Read the <b>Teardown Manual</b> (left). Only the current step can be removed.</li>
+          <li>Select the tool shown for that step (<kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>).</li>
+          <li>Click each glowing <b>bolt</b> on the 3D engine to loosen it.</li>
+          <li>When the part pulses green, <b>click it</b> to lift it to the workbench.</li>
+          <li>Wrong tool or wrong part = damage + lost points. <kbd>H</kbd> shows a hint (−100).</li>
+          <li>Strip all <b>25 assemblies</b> to expose the core shafts and win.</li>
+        </ol>
+        <button id="btn-close-help">GOT IT</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
